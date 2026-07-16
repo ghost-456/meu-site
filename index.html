@@ -1,531 +1,652 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pagamento Pix</title>
-<style>
-  :root{
-    --bg:#0f172a;--card:#111827;--text:#e5e7eb;--muted:#94a3b8;
-    --accent:#22c55e;--accent-dark:#16a34a;--border:#334155;
-    --danger:#ef4444;--warning:#f59e0b;--gold:#fbbf24;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#020617 0%,#0f172a 100%);color:var(--text);min-height:100vh}
-  .container{max-width:1000px;margin:0 auto;padding:32px 16px 56px}
-  .security-bar{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:10px 16px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;font-size:14px;color:#86efac}
-  .security-bar::before{content:"🔒";font-size:16px}
-  .hero{text-align:center;margin-bottom:28px}
-  .hero h1{margin:0 0 10px;font-size:clamp(28px,4vw,46px)}
-  .hero p{margin:0;color:var(--muted)}
-  .urgency-banner{background:linear-gradient(90deg,rgba(239,68,68,.15),rgba(245,158,11,.15));border:1px solid rgba(245,158,11,.4);border-radius:12px;padding:12px 16px;text-align:center;margin-bottom:20px;font-size:14px;color:#fcd34d}
-  .urgency-banner strong{color:#fff}
-  .card{background:rgba(17,24,39,.92);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:transform .2s,border-color .2s}
-  .plan-card{position:relative;display:flex;flex-direction:column}
-  .plan-card:hover{transform:translateY(-4px);border-color:var(--accent)}
-  .plan-card.popular{border-color:var(--accent);box-shadow:0 0 30px rgba(34,197,94,.25)}
-  .badge-popular{position:absolute;top:-12px;right:16px;background:linear-gradient(90deg,var(--accent),#86efac);color:#0b1220;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700}
-  .btn{width:100%;margin-top:16px;padding:14px 16px;border:none;border-radius:12px;cursor:pointer;font-size:16px;font-weight:700;color:#0b1220;background:linear-gradient(90deg,var(--accent),#86efac);transition:transform .1s,box-shadow .2s}
-  .btn:hover{box-shadow:0 6px 20px rgba(34,197,94,.4)}
-  .btn:active{transform:scale(.98)}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
-  .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
-  .btn-lucky{background:linear-gradient(90deg,#fbbf24,#f59e0b,#fbbf24);background-size:200% 100%;animation:shine 3s linear infinite;color:#0b1220}
-  @keyframes shine{0%{background-position:0% 50%}100%{background-position:200% 50%}}
-  .field{width:100%;padding:14px;margin-top:8px;margin-bottom:14px;border-radius:12px;border:1px solid var(--border);background:#0b1220;color:var(--text);outline:none;transition:border-color .2s}
-  .field:focus{border-color:var(--accent)}
-  .field.error{border-color:var(--danger)}
-  .field-error{color:var(--danger);font-size:13px;margin-top:-10px;margin-bottom:10px;display:none}
-  .field-error.show{display:block}
-  .consent-box{display:flex;gap:10px;align-items:flex-start;margin-top:6px;margin-bottom:8px;cursor:pointer}
-  .consent-box input{margin-top:4px}
-  .trust-badges{display:flex;justify-content:center;gap:20px;margin:16px 0;flex-wrap:wrap;font-size:13px;color:var(--muted)}
-  .trust-badges span{display:flex;align-items:center;gap:6px}
-  .small{color:var(--muted);font-size:14px;line-height:1.5}
-  .hidden{display:none}
-  .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:24px}
-  .plan-name{font-size:22px;margin:0 0 6px}
-  .plan-price{font-size:34px;font-weight:700;margin:6px 0 8px;color:#fff}
-  .plan-price-old{font-size:15px;color:var(--muted);text-decoration:line-through;margin-bottom:4px}
-  .plan-desc{color:var(--muted);line-height:1.5;min-height:48px}
-  .plan-features{list-style:none;padding:0;margin:12px 0;color:var(--muted);font-size:14px}
-  .plan-features li{padding:4px 0;display:flex;align-items:center;gap:8px}
-  .plan-features li::before{content:"✓";color:var(--accent);font-weight:700}
-  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:16px;z-index:999;backdrop-filter:blur(4px)}
-  .modal{width:100%;max-width:420px;background:#111827;border:1px solid var(--border);border-radius:20px;padding:20px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.45);max-height:92vh;overflow-y:auto;animation:modalIn .25s ease-out}
-  @keyframes modalIn{from{opacity:0;transform:scale(.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
-  .close{position:absolute;top:10px;right:14px;cursor:pointer;font-size:28px;line-height:1;color:#fff;background:none;border:none}
-  .expiry-timer{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:8px 12px;margin:10px 0;font-size:14px;color:#fcd34d;display:flex;align-items:center;justify-content:center;gap:8px}
-  .expiry-timer.expired{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);color:#fca5a5}
-  .qr-box{background:#fff;border-radius:16px;padding:14px;display:flex;justify-content:center;align-items:center;min-height:240px;margin:14px auto;width:100%;position:relative;overflow:hidden}
-  .pix-code{width:100%;min-height:90px;resize:none;border-radius:12px;border:1px solid var(--border);background:#0b1220;color:var(--text);padding:12px;font-size:13px;line-height:1.4;margin-top:8px;font-family:monospace}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:#111827;color:#fff;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:10000;opacity:0;transition:all .3s ease;pointer-events:none}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .lucky-card{background:linear-gradient(135deg,rgba(251,191,36,.15),rgba(245,158,11,.08));border:1px solid rgba(251,191,36,.4);text-align:center;margin-top:24px}
-  .lucky-card h2{margin:0 0 8px;color:#fcd34d;font-size:22px}
-  .lucky-card p{margin:0 0 12px;color:var(--muted);font-size:14px}
-  .wheel-wrap{position:relative;width:min(320px,80vw);aspect-ratio:1/1;margin:14px auto}
-  .wheel-pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:22px solid #ef4444;z-index:5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
-  .wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:radial-gradient(circle,#fff 30%,#fbbf24 100%);border:3px solid #0b1220;z-index:4;box-shadow:0 2px 8px rgba(0,0,0,.5)}
-  .wheel{width:100%;height:100%;border-radius:50%;border:6px solid #fbbf24;box-shadow:0 0 30px rgba(251,191,36,.4),inset 0 0 20px rgba(0,0,0,.3);transition:transform 5.5s cubic-bezier(.15,.9,.25,1);transform:rotate(0deg);display:block}
-  .spin-btn{margin-top:8px}
-  .lucky-status{margin-top:10px;font-size:13px;color:var(--muted)}
-  .prize-result{margin-top:14px;padding:14px;border-radius:12px;background:#0b1220;border:1px solid var(--border);display:none}
-  .prize-result.win{border-color:var(--accent);background:rgba(34,197,94,.1)}
-  .prize-result.show{display:block;animation:modalIn .3s ease-out}
-  .prize-result h3{margin:0 0 8px;color:#fff}
-  .prize-result .prize-value{font-size:22px;font-weight:700;color:#fcd34d;margin:4px 0}
-  .prize-actions{display:flex;gap:8px;margin-top:12px}
-  .prize-actions .btn{margin-top:0}
-  .user-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86efac;padding:6px 12px;border-radius:999px;font-size:13px;margin-bottom:12px}
-  @media (max-width:840px){.plans{grid-template-columns:1fr}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPTV Premium - Filmes, Séries e Canais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --card: #1f2833;
+      --text: #e5e7eb;
+      --muted: #a0aec0;
+      --accent: #ef4444;
+      --accent-hover: #dc2626;
+      --gold: #fbbf24;
+      --green: #22c55e;
+      --border: rgba(255,255,255,0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Background cinematográfico */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(11,12,16,0.3) 0%, rgba(11,12,16,0.95) 100%),
+        url('https://images.unsplash.com/photo-1536440136628-849c177e76fc?w=1920&q=80') center/cover no-repeat;
+      z-index: -2;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 30%, transparent 0%, rgba(11,12,16,0.8) 70%);
+      z-index: -1;
+    }
+
+    .floating-cards {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      z-index: -1;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .floating-cards img {
+      position: absolute;
+      width: 140px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      animation: float 20s infinite ease-in-out;
+    }
+
+    .floating-cards img:nth-child(1) { top: 10%; left: 5%; animation-delay: 0s; }
+    .floating-cards img:nth-child(2) { top: 60%; left: 8%; animation-delay: -5s; }
+    .floating-cards img:nth-child(3) { top: 20%; right: 8%; animation-delay: -10s; }
+    .floating-cards img:nth-child(4) { top: 65%; right: 5%; animation-delay: -15s; }
+    .floating-cards img:nth-child(5) { top: 40%; left: 15%; animation-delay: -7s; }
+    .floating-cards img:nth-child(6) { top: 45%; right: 15%; animation-delay: -12s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-25px) rotate(2deg); }
+    }
+
+    .hero-content {
+      max-width: 800px;
+      z-index: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.2); }
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: linear-gradient(135deg, var(--green) 0%, #16a34a 100%);
+      color: white;
+      text-decoration: none;
+      padding: 1.1rem 2.5rem;
+      border-radius: 16px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      box-shadow: 0 12px 32px rgba(34,197,94,0.3);
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .cta-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px rgba(34,197,94,0.4);
+    }
+
+    .cta-button svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      max-width: 1000px;
+      margin: 4rem auto 0;
+      padding: 0 1.5rem;
+    }
+
+    .feature {
+      background: rgba(31,40,51,0.6);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .feature p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* Depoimentos */
+    .testimonials {
+      padding: 6rem 1.5rem;
+      background: linear-gradient(180deg, rgba(11,12,16,1) 0%, rgba(17,24,39,1) 50%, rgba(11,12,16,1) 100%);
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+
+    .section-title h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+
+    .section-title p {
+      color: var(--muted);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .review-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.75rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .review-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      border-color: rgba(239,68,68,0.2);
+    }
+
+    .stars {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .stars svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--gold);
+      color: var(--gold);
+    }
+
+    .review-text {
+      font-size: 0.95rem;
+      color: #d1d5db;
+      margin-bottom: 1.25rem;
+      line-height: 1.7;
+    }
+
+    .reviewer {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.1);
+    }
+
+    .reviewer-info h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .reviewer-info span {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .verified {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--green);
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+
+    /* Preços */
+    .pricing {
+      padding: 6rem 1.5rem;
+      text-align: center;
+    }
+
+    .pricing-card {
+      max-width: 420px;
+      margin: 0 auto;
+      background: linear-gradient(135deg, rgba(31,40,51,0.9) 0%, rgba(17,24,39,0.9) 100%);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 24px;
+      padding: 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pricing-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(239,68,68,0.1) 0%, transparent 70%);
+      z-index: 0;
+    }
+
+    .pricing-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .popular-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      margin-bottom: 1.25rem;
+    }
+
+    .pricing-card h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .price {
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: white;
+      margin: 1rem 0;
+    }
+
+    .price span {
+      font-size: 1rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .pricing-features {
+      list-style: none;
+      text-align: left;
+      margin: 2rem 0;
+    }
+
+    .pricing-features li {
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .pricing-features li:last-child {
+      border-bottom: none;
+    }
+
+    .check {
+      color: var(--green);
+      font-weight: bold;
+    }
+
+    /* Footer CTA */
+    .footer-cta {
+      padding: 4rem 1.5rem;
+      text-align: center;
+      background: rgba(31,40,51,0.4);
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-cta h2 {
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      margin-bottom: 1rem;
+    }
+
+    .footer-cta p {
+      color: var(--muted);
+      margin-bottom: 2rem;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 640px) {
+      .floating-cards { display: none; }
+      .features { grid-template-columns: 1fr; }
+      .reviews-grid { grid-template-columns: 1fr; }
+      .price { font-size: 2.8rem; }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-  <div class="security-bar">Pagamento 100% seguro • Criptografia SSL</div>
 
-  <div id="registerSection" class="card">
-    <h2 style="margin-top:0">Cadastro rápido</h2>
-    <p class="small">Preencha nome e WhatsApp para continuar.</p>
-
-    <label>Seu nome</label>
-    <input id="customerName" class="field" type="text" placeholder="Digite seu nome" />
-    <div id="nameError" class="field-error">Nome deve ter pelo menos 3 caracteres.</div>
-
-    <label>WhatsApp</label>
-    <input id="customerWhatsapp" class="field" type="tel" placeholder="(00) 00000-0000" maxlength="15" />
-    <div id="whatsappError" class="field-error">WhatsApp inválido. Ex: (11) 99999-9999</div>
-
-    <label class="consent-box">
-      <input id="dataConsent" type="checkbox" />
-      <span class="small">Autorizo o envio do meu nome e WhatsApp para registro em banco de log.</span>
-    </label>
-
-    <button class="btn" onclick="continueToPlans()">Continuar →</button>
-
-    <div class="trust-badges">
-      <span>🔒 SSL</span>
-      <span>✓ Dados protegidos</span>
-      <span>⚡ Ativação rápida</span>
-    </div>
-  </div>
-
-  <div id="mainSection" class="hidden">
-    <div id="userChip" class="user-chip"></div>
-
-    <div class="hero">
-      <h1>Escolha seu plano</h1>
-      <p>Ative em minutos e pague via Pix.</p>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="floating-cards">
+      <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?w=300&q=80" alt="Filme">
+      <img src="https://images.unsplash.com/photo-1594909122849-11daa4a4f7b4?w=300&q=80" alt="Série">
+      <img src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300&q=80" alt="Cinema">
+      <img src="https://images.unsplash.com/photo-1535016120720-40c6874c3b13?w=300&q=80" alt="Streaming">
+      <img src="https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=300&q=80" alt="Filme 2">
+      <img src="https://images.unsplash.com/photo-1522869635100-9f4c5e86a37b?w=300&q=80" alt="TV">
     </div>
 
-    <div class="urgency-banner">🔥 Oferta especial — encerra em <strong id="urgencyTimer">30:00</strong></div>
+    <div class="hero-content">
+      <div class="badge">+15.000 conteúdos disponíveis</div>
+      <h1>Filmes, Séries e Canais em um só lugar</h1>
+      <p>Assista aos melhores lançamentos do cinema, séries exclusivas e canais ao vivo com qualidade HD e 4K. Tudo isso sem travamentos e com suporte 24 horas.</p>
+      <a href="https://wa.me/+27632500643?text=Ola%2C%20gostaria%20de%20contratar%20seu%20iptv!%20" class="cta-button" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Contratar plano no WhatsApp
+      </a>
+    </div>
+  </section>
 
-    <div class="card lucky-card">
-      <h2>🎰 Promoção da Sorte</h2>
-      <p>Gire a roleta e concorra a descontos incríveis! 1 giro grátis por semana.</p>
-      <button class="btn btn-lucky" onclick="openLucky()">🍀 Girar a Roleta da Sorte</button>
-      <div class="lucky-status" id="luckyStatusInline"></div>
+  <!-- Recursos -->
+  <section class="features">
+    <div class="feature">
+      <div class="feature-icon">📺</div>
+      <h3>Canais ao vivo</h3>
+      <p>Esportes, notícias, entretenimento e muito mais.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🎬</div>
+      <h3>Filmes e séries</h3>
+      <p>Catálogo atualizado com os últimos lançamentos.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <h3>Sem travamentos</h3>
+      <p>Servidores estáveis para assistir sem interrupções.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🛡️</div>
+      <h3>Suporte 24/7</h3>
+      <p>Atendimento rápido pelo WhatsApp todos os dias.</p>
+    </div>
+  </section>
+
+  <!-- Depoimentos -->
+  <section class="testimonials">
+    <div class="section-title">
+      <h2>O que nossos clientes dizem</h2>
+      <p>Mais de 5 mil pessoas já transformaram a forma de assistir TV com nosso serviço.</p>
     </div>
 
-    <div class="plans">
-      <div class="card plan-card">
-        <h3 class="plan-name">1 MÊS</h3>
-        <div class="plan-price-old">R$ 35,00</div>
-        <div class="plan-price">R$ 25,00</div>
-        <div class="plan-desc">Acesso por 1 mês.</div>
-        <ul class="plan-features">
-          <li>Ativação imediata</li>
-          <li>Suporte via WhatsApp</li>
-          <li>Sem fidelidade</li>
-        </ul>
-        <button class="btn" onclick="selectPlan('1 Mês',25.00)">Selecionar</button>
+    <div class="reviews-grid">
+      <div class="review-card">
+        <div class="stars">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <p class="review-text">"Melhor IPTV que já assinei. Imagem em 4K e não trava nem nos jogos do fim de semana. Suporte sempre responde rápido."</p>
+        <div class="reviewer">
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80" alt="Carlos" class="avatar">
+          <div class="reviewer-info">
+            <h4>Carlos Mendes</h4>
+            <span>São Paulo, SP</span>
+            <div class="verified">✓ Cliente verificado</div>
+          </div>
+        </div>
       </div>
 
-      <div class="card plan-card popular">
-        <span class="badge-popular">MAIS ESCOLHIDO</span>
-        <h3 class="plan-name">6 MESES</h3>
-        <div class="plan-price-old">R$ 210,00</div>
-        <div class="plan-price">R$ 150,00</div>
-        <div class="plan-desc">Acesso por 6 meses.</div>
-        <ul class="plan-features">
-          <li>Economia de R$ 60</li>
-          <li>Suporte prioritário</li>
-          <li>Ativação imediata</li>
-        </ul>
-        <button class="btn" onclick="selectPlan('6 Meses',150.00)">Selecionar</button>
+      <div class="review-card">
+        <div class="stars">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <p class="review-text">"Minha família adorou. Conseguimos assistir filmes novos no mesmo dia do cinema e as crianças têm desenhos o dia todo."</p>
+        <div class="reviewer">
+          <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80" alt="Fernanda" class="avatar">
+          <div class="reviewer-info">
+            <h4>Fernanda Rocha</h4>
+            <span>Rio de Janeiro, RJ</span>
+            <div class="verified">✓ Cliente verificado</div>
+          </div>
+        </div>
       </div>
 
-      <div class="card plan-card">
-        <h3 class="plan-name">1 ANO</h3>
-        <div class="plan-price-old">R$ 480,00</div>
-        <div class="plan-price">R$ 300,00</div>
-        <div class="plan-desc">Acesso por 1 ano.</div>
-        <ul class="plan-features">
-          <li>Economia de R$ 180</li>
-          <li>Suporte VIP</li>
-          <li>Melhor custo-benefício</li>
-        </ul>
-        <button class="btn" onclick="selectPlan('1 Ano',300.00)">Selecionar</button>
+      <div class="review-card">
+        <div class="stars">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <p class="review-text">"Instalação super fácil no celular e na TV. Em 5 minutos estava tudo funcionando. Recomendo demais o serviço."</p>
+        <div class="reviewer">
+          <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80" alt="João" class="avatar">
+          <div class="reviewer-info">
+            <h4>João Pedro</h4>
+            <span>Belo Horizonte, MG</span>
+            <div class="verified">✓ Cliente verificado</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="stars">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <p class="review-text">"O custo-benefício é excelente. Paguei muito mais por outros serviços e nenhum entregou tanta qualidade quanto esse."</p>
+        <div class="reviewer">
+          <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&q=80" alt="Ana" class="avatar">
+          <div class="reviewer-info">
+            <h4>Ana Luiza</h4>
+            <span>Curitiba, PR</span>
+            <div class="verified">✓ Cliente verificado</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="stars">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <p class="review-text">"Assisto no trabalho pelo celular e em casa na Smart TV. Funciona perfeito em todos os aparelhos. Nota 10!"</p>
+        <div class="reviewer">
+          <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80" alt="Ricardo" class="avatar">
+          <div class="reviewer-info">
+            <h4>Ricardo Almeida</h4>
+            <span>Salvador, BA</span>
+            <div class="verified">✓ Cliente verificado</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="stars">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <p class="review-text">"Sempre tive medo de assinar IPTV, mas esse é confiável. Pagamento seguro e atendimento honesto."</p>
+        <div class="reviewer">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80" alt="Mariana" class="avatar">
+          <div class="reviewer-info">
+            <h4>Mariana Costa</h4>
+            <span>Fortaleza, CE</span>
+            <div class="verified">✓ Cliente verificado</div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<div class="overlay" id="pixModal" onclick="closeModal(event)">
-  <div class="modal">
-    <button class="close" onclick="closePix()">×</button>
-    <h2>Pagamento Pix</h2>
-    <div class="small">Plano: <strong id="modalPlan"></strong></div>
-    <div class="small">Valor: <strong id="modalValue"></strong></div>
-    <div class="expiry-timer" id="expiryTimer">⏱ Expira em <span id="pixCountdown">15:00</span></div>
-    <div class="qr-box" id="qrcode"></div>
-    <textarea class="pix-code" id="pixCode" readonly></textarea>
-    <button class="btn" onclick="copyCode()">📋 Copiar código Pix</button>
-    <button class="btn" onclick="sendReceipt()" style="margin-top:8px;background:linear-gradient(90deg,#06b6d4,#06b6d4);color:#0b1220">📩 Enviar comprovante</button>
-    <button class="btn btn-outline" onclick="closePix()">Fechar</button>
-  </div>
-</div>
-
-<div class="overlay" id="luckyModal" onclick="closeLuckyBg(event)">
-  <div class="modal">
-    <button class="close" onclick="closeLucky()">×</button>
-    <h2>🎰 Roleta da Sorte</h2>
-    <p class="small">Gire e boa sorte!</p>
-    <div class="wheel-wrap">
-      <div class="wheel-pointer"></div>
-      <div class="wheel-hub"></div>
-      <canvas id="wheelCanvas" class="wheel" width="500" height="500"></canvas>
+  <!-- Preços -->
+  <section class="pricing">
+    <div class="section-title">
+      <h2>Plano mais popular</h2>
+      <p>Acesso completo por um preço único. Sem taxas escondidas.</p>
     </div>
-    <button class="btn spin-btn" id="spinBtn" onclick="spinWheel()">🎲 GIRAR</button>
-    <div class="lucky-status" id="luckyStatus"></div>
-    <div class="prize-result" id="prizeResult">
-      <h3 id="prizeTitle"></h3>
-      <div class="prize-value" id="prizeValue"></div>
-      <div class="small" id="prizeDesc"></div>
-      <div class="prize-actions" id="prizeActions"></div>
+
+    <div class="pricing-card">
+      <div class="pricing-content">
+        <span class="popular-badge">MAIS ESCOLHIDO</span>
+        <h3>Plano Premium Mensal</h3>
+        <div class="price">R$ 25 <span>/mês</span></div>
+        <ul class="pricing-features">
+          <li><span class="check">✓</span> +200.000 conteúdos</li>
+          <li><span class="check">✓</span> Canais ao vivo em HD/4K</li>
+          <li><span class="check">✓</span> Filmes e séries atualizadas</li>
+          <li><span class="check">✓</span> Até 3 telas simultâneas</li>
+          <li><span class="check">✓</span> Suporte via WhatsApp 24/7</li>
+          <li><span class="check">✓</span> Teste grátis de 4 horas</li>
+        </ul>
+        <a href="https://wa.me/+27632500643?text=Ola%2C%20gostaria%20de%20contratar%20seu%20iptv!%20" class="cta-button" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Quero contratar agora
+        </a>
+      </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<div class="toast" id="copyToast"><span>✓</span><span id="toastText">Código Pix copiado!</span></div>
+  <!-- Footer CTA -->
+  <section class="footer-cta">
+    <h2>Ainda com dúvidas?</h2>
+    <p>Fale diretamente comigo pelo WhatsApp e receba seu teste grátis de 4 horas antes de contratar.</p>
+    <a href="https://wa.me/+27632500643?text=Ola%2C%20gostaria%20de%20contratar%20seu%20iptv!%20" class="cta-button" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Falar no WhatsApp
+    </a>
+  </section>
 
-<script>
-  const WA_LINK = 'https://w.app/4bm8zc';
+  <footer>
+    <p>© 2026 IPTV Premium. Todos os direitos reservados.</p>
+  </footer>
 
-  const PLAN_DATA = {
-    '1 Mês':   { value:25.00,  payload:'00020126580014BR.GOV.BCB.PIX01366f1d8179-a8e3-40db-8bcb-8d847a6ca5e3520400005303986540525.005802BR5925LAURIENE GUILHERME DA SIL6009Sao Paulo62290525REC6A580A4F4219A52385107263040A22' },
-    '6 Meses': { value:150.00, payload:'00020126580014BR.GOV.BCB.PIX01366f1d8179-a8e3-40db-8bcb-8d847a6ca5e35204000053039865406150.005802BR5925LAURIENE GUILHERME DA SIL6009Sao Paulo62290525REC6A580AB8DFF8A6579696636304F33B' },
-    '1 Ano':   { value:300.00, payload:'00020126580014BR.GOV.BCB.PIX01366f1d8179-a8e3-40db-8bcb-8d847a6ca5e35204000053039865406300.005802BR5925LAURIENE GUILHERME DA SIL6009Sao Paulo62290525REC6A580AD91E1BD82637836763041197' },
-    'PROMO_1ANO_69': { value:69.90, payload:'00020126580014BR.GOV.BCB.PIX01366f1d8179-a8e3-40db-8bcb-8d847a6ca5e3520400005303986540569.905802BR5925LAURIENE GUILHERME DA SIL6009Sao Paulo62290525REC6A580EAC9B25E8259663396304F0C2' },
-    'PROMO_6M_40':   { value:40.00, payload:'00020126580014BR.GOV.BCB.PIX01366f1d8179-a8e3-40db-8bcb-8d847a6ca5e3520400005303986540540.005802BR5925LAURIENE GUILHERME DA SIL6009Sao Paulo62290525REC6A580F1F58F0496205754963045C68' },
-    'PROMO_1MES_15': { value:15.00, payload:'00020126580014BR.GOV.BCB.PIX01366f1d8179-a8e3-40db-8bcb-8d847a6ca5e3520400005303986540515.005802BR5925LAURIENE GUILHERME DA SIL6009Sao Paulo62290525REC6A5810711BE673061609206304A5D7' }
-  };
-
-  let selectedPlan='', qrTimer=null, toastTimer=null, pixExpiryTimer=null, urgencyTimer=null;
-  let currentValue=0;
-  let customer = { name:'', whatsapp:'' };
-
-  const waInput = document.getElementById('customerWhatsapp');
-  waInput.addEventListener('input', (e)=>{
-    let v = e.target.value.replace(/\D/g,'').slice(0,11);
-    if(v.length>10) v = v.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, '($1) $2-$3');
-    else if(v.length>6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
-    else if(v.length>2) v = v.replace(/^(\d{2})(\d{0,5}).*/, '($1) $2');
-    else if(v.length>0) v = v.replace(/^(\d{0,2}).*/, '($1');
-    e.target.value = v;
-  });
-
-  function validName(n){ return n && n.trim().length>=3; }
-  function validWhats(w){ const d = (w||'').replace(/\D/g,''); return d.length===10 || d.length===11; }
-
-  function continueToPlans(){
-    const nameEl = document.getElementById('customerName');
-    const waEl = document.getElementById('customerWhatsapp');
-    const consent = document.getElementById('dataConsent').checked;
-    const nameErr = document.getElementById('nameError');
-    const waErr = document.getElementById('whatsappError');
-    let ok = true;
-
-    if(!validName(nameEl.value)){ nameEl.classList.add('error'); nameErr.classList.add('show'); ok=false; }
-    else { nameEl.classList.remove('error'); nameErr.classList.remove('show'); }
-
-    if(!validWhats(waEl.value)){ waEl.classList.add('error'); waErr.classList.add('show'); ok=false; }
-    else { waEl.classList.remove('error'); waErr.classList.remove('show'); }
-
-    if(!consent){ showToast('Você precisa autorizar o registro para continuar.'); ok=false; }
-    if(!ok) return;
-
-    customer.name = nameEl.value.trim();
-    customer.whatsapp = waEl.value.trim();
-
-    try{ localStorage.setItem('customer_v1', JSON.stringify(customer)); }catch(_){}
-
-    document.getElementById('registerSection').classList.add('hidden');
-    document.getElementById('mainSection').classList.remove('hidden');
-    document.getElementById('userChip').textContent = '👤 ' + customer.name + ' • ' + customer.whatsapp;
-    startUrgency();
-  }
-
-  try{
-    const saved = JSON.parse(localStorage.getItem('customer_v1')||'null');
-    if(saved && validName(saved.name) && validWhats(saved.whatsapp)){
-      customer = saved;
-      document.getElementById('registerSection').classList.add('hidden');
-      document.getElementById('mainSection').classList.remove('hidden');
-      document.getElementById('userChip').textContent = '👤 ' + customer.name + ' • ' + customer.whatsapp;
-      startUrgency();
-    }
-  }catch(_){}
-
-  function startUrgency(){
-    if(urgencyTimer) return;
-    let seconds=30*60, el=document.getElementById('urgencyTimer');
-    urgencyTimer=setInterval(()=>{
-      seconds--;
-      el.textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
-      if(seconds<=0){clearInterval(urgencyTimer);el.textContent='Encerrada';}
-    },1000);
-  }
-
-  function generatePix(payload,value,label){
-    if(qrTimer) clearTimeout(qrTimer);
-    document.getElementById('modalPlan').innerText=label;
-    document.getElementById('modalValue').innerText='R$ '+value.toFixed(2).replace('.',',');
-    document.getElementById('pixCode').value=payload;
-    document.getElementById('pixModal').style.display='flex';
-    const qrDiv=document.getElementById('qrcode');
-    qrDiv.innerHTML='';
-    const img=document.createElement('img');
-    img.width=220;img.height=220;img.alt='QR Code Pix';
-    img.style.display='block';
-    img.src='https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=10&ecc=M&data='+encodeURIComponent(payload);
-    qrDiv.appendChild(img);
-    startPixCountdown();
-  }
-
-  function startPixCountdown(){
-    let s=15*60, el=document.getElementById('pixCountdown'), t=document.getElementById('expiryTimer');
-    t.classList.remove('expired');
-    if(pixExpiryTimer) clearInterval(pixExpiryTimer);
-    pixExpiryTimer=setInterval(()=>{
-      s--; el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
-      if(s<=0){clearInterval(pixExpiryTimer);t.classList.add('expired');el.textContent='Expirado';}
-    },1000);
-  }
-
-  function closePix(){
-    if(qrTimer){clearTimeout(qrTimer);qrTimer=null;}
-    if(pixExpiryTimer){clearInterval(pixExpiryTimer);pixExpiryTimer=null;}
-    document.getElementById('pixModal').style.display='none';
-  }
-  function closeModal(e){ if(e.target.id==='pixModal') closePix(); }
-
-  function copyCode(){
-    const c=document.getElementById('pixCode'); c.select(); c.setSelectionRange(0,99999);
-    try{ document.execCommand('copy'); }catch(_){}
-    showToast('Código Pix copiado!');
-  }
-
-  function sendReceipt(){
-    try{
-      window.open(WA_LINK, '_blank');
-      showToast('Abrindo WhatsApp...');
-    }catch(e){
-      window.location.href = WA_LINK;
-    }
-  }
-
-  function showToast(text){
-    const t=document.getElementById('copyToast');
-    if(text) document.getElementById('toastText').textContent=text;
-    t.classList.add('show');
-    if(toastTimer) clearTimeout(toastTimer);
-    toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
-  }
-
-  const WHEEL = [
-    { id:'try_again',  label:'Não foi',       color:'#334155', text:'#e5e7eb' },
-    { id:'promo_1ano', label:'1 ANO R$69,90', color:'#fbbf24', text:'#0b1220' },
-    { id:'try_again',  label:'Não foi',       color:'#1e293b', text:'#e5e7eb' },
-    { id:'cupom_10',   label:'10% OFF',       color:'#3b82f6', text:'#fff'   },
-    { id:'try_again',  label:'Não foi',       color:'#334155', text:'#e5e7eb' },
-    { id:'promo_6m',   label:'6 MESES R$40',  color:'#22c55e', text:'#0b1220' },
-    { id:'try_again',  label:'Não foi',       color:'#1e293b', text:'#e5e7eb' },
-    { id:'cupom_20',   label:'20% OFF',       color:'#8b5cf6', text:'#fff'   },
-    { id:'try_again',  label:'Não foi',       color:'#334155', text:'#e5e7eb' },
-    { id:'promo_1mes', label:'1 MÊS R$15',    color:'#06b6d4', text:'#0b1220' }
-  ];
-  const N = WHEEL.length;
-  const SLICE = 360/N;
-  const LUCKY_KEY = 'luckySpinLastTs_v1';
-  const WEEK_MS = 7*24*60*60*1000;
-  let currentRotation = 0;
-  let spinning = false;
-
-  function drawWheel(){
-    const canvas=document.getElementById('wheelCanvas');
-    const ctx=canvas.getContext('2d');
-    const size=canvas.width, r=size/2;
-    ctx.clearRect(0,0,size,size);
-    const start0 = -Math.PI/2 - (Math.PI/N);
-    for(let i=0;i<N;i++){
-      const a0 = start0 + i*(2*Math.PI/N);
-      const a1 = a0 + (2*Math.PI/N);
-      ctx.beginPath();
-      ctx.moveTo(r,r);
-      ctx.arc(r,r,r-6,a0,a1);
-      ctx.closePath();
-      ctx.fillStyle = WHEEL[i].color;
-      ctx.fill();
-      ctx.strokeStyle='rgba(0,0,0,.25)';
-      ctx.lineWidth=2;
-      ctx.stroke();
-      ctx.save();
-      ctx.translate(r,r);
-      ctx.rotate(a0 + (Math.PI/N));
-      ctx.textAlign='right';
-      ctx.fillStyle=WHEEL[i].text;
-      ctx.font='bold 20px Arial';
-      ctx.fillText(WHEEL[i].label, r-18, 6);
-      ctx.restore();
-    }
-  }
-  drawWheel();
-
-  function openLucky(){ document.getElementById('luckyModal').style.display='flex'; updateLuckyStatus(); }
-  function closeLucky(){ document.getElementById('luckyModal').style.display='none'; }
-  function closeLuckyBg(e){ if(e.target.id==='luckyModal') closeLucky(); }
-
-  function safeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return (window.__luckyMem&&window.__luckyMem[k])||null; } }
-  function safeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ window.__luckyMem=window.__luckyMem||{}; window.__luckyMem[k]=v; } }
-
-  function updateLuckyStatus(){
-    const last = parseInt(safeGet(LUCKY_KEY)||'0',10);
-    const now = Date.now();
-    const remaining = last ? (WEEK_MS - (now-last)) : 0;
-    const inline=document.getElementById('luckyStatusInline');
-    const inModal=document.getElementById('luckyStatus');
-    const btn=document.getElementById('spinBtn');
-    if(remaining>0){
-      const d=Math.floor(remaining/86400000);
-      const h=Math.floor((remaining%86400000)/3600000);
-      const msg=`⏳ Próximo giro disponível em ${d}d ${h}h`;
-      if(inline) inline.textContent=msg;
-      if(inModal) inModal.textContent=msg;
-      if(btn){ btn.disabled=true; btn.textContent='Aguarde a próxima semana'; }
-      return false;
-    }
-    if(inline) inline.textContent='✅ Você tem 1 giro grátis disponível!';
-    if(inModal) inModal.textContent='✅ Giro grátis disponível';
-    if(btn){ btn.disabled=false; btn.textContent='🎲 GIRAR'; }
-    return true;
-  }
-
-  function secureRandomInt(max){
-    const buf=new Uint32Array(1);
-    const limit=Math.floor(0xFFFFFFFF/max)*max;
-    let x;
-    do{ crypto.getRandomValues(buf); x=buf[0]; } while(x>=limit);
-    return x % max;
-  }
-
-  function spinWheel(){
-    if(spinning) return;
-    if(!updateLuckyStatus()) return;
-    spinning=true;
-    const btn=document.getElementById('spinBtn');
-    btn.disabled=true; btn.textContent='Girando...';
-    document.getElementById('prizeResult').classList.remove('show','win');
-
-    const idx = secureRandomInt(N);
-    const extraTurns = 6 + secureRandomInt(3);
-    const jitter = (secureRandomInt(1000)/1000 - 0.5) * (SLICE*0.7);
-    const targetAbs = extraTurns*360 + (360 - idx*SLICE) + jitter;
-    const currentMod = ((currentRotation%360)+360)%360;
-    const delta = targetAbs - currentMod;
-    currentRotation += delta;
-
-    const canvas=document.getElementById('wheelCanvas');
-    canvas.style.transform = `rotate(${currentRotation}deg)`;
-
-    setTimeout(()=>{
-      safeSet(LUCKY_KEY, String(Date.now()));
-      spinning=false;
-      showPrize(WHEEL[idx]);
-      updateLuckyStatus();
-    }, 5700);
-  }
-
-  function showPrize(slice){
-    const box=document.getElementById('prizeResult');
-    const title=document.getElementById('prizeTitle');
-    const value=document.getElementById('prizeValue');
-    const desc=document.getElementById('prizeDesc');
-    const actions=document.getElementById('prizeActions');
-    actions.innerHTML='';
-    box.classList.remove('win');
-
-    if(slice.id==='try_again'){
-      title.textContent='😢 Não foi dessa vez!';
-      value.textContent='';
-      desc.textContent='Tente novamente na próxima semana. Boa sorte!';
-      actions.innerHTML='<button class="btn btn-outline" onclick="closeLucky()">Fechar</button>';
-    } else if(slice.id==='promo_1ano'){
-      box.classList.add('win');
-      title.textContent='🎉 VOCÊ GANHOU!';
-      value.textContent='1 ANO por R$ 69,90';
-      desc.textContent='Promoção especial de R$ 300 por apenas R$ 69,90. Aproveite agora!';
-      actions.innerHTML='<button class="btn" onclick="claimPrize(\'PROMO_1ANO_69\',\'1 Ano - Promoção Sorte\',69.90)">💳 Pagar agora</button>';
-    } else if(slice.id==='promo_6m'){
-      box.classList.add('win');
-      title.textContent='🎉 VOCÊ GANHOU!';
-      value.textContent='6 MESES por R$ 40,00';
-      desc.textContent='Promoção especial de R$ 150 por apenas R$ 40. Aproveite!';
-      actions.innerHTML='<button class="btn" onclick="claimPrize(\'PROMO_6M_40\',\'6 Meses - Promoção Sorte\',40.00)">💳 Pagar agora</button>';
-    } else if(slice.id==='promo_1mes'){
-      box.classList.add('win');
-      title.textContent='🎉 VOCÊ GANHOU!';
-      value.textContent='1 MÊS por R$ 15,00';
-      desc.textContent='Promoção relâmpago: 1 mês por só R$ 15.';
-      actions.innerHTML='<button class="btn" onclick="claimPrize(\'PROMO_1MES_15\',\'1 Mês - Promoção Sorte\',15.00)">💳 Pagar agora</button>';
-    } else if(slice.id==='cupom_10' || slice.id==='cupom_20'){
-      const pct = slice.id==='cupom_10'?10:20;
-      box.classList.add('win');
-      title.textContent='🎉 VOCÊ GANHOU!';
-      value.textContent=pct+'% OFF em qualquer plano';
-      desc.textContent='Escolha um plano e o desconto será aplicado automaticamente.';
-      actions.innerHTML=`<button class="btn" onclick="applyWheelCoupon(${pct})">Aplicar e escolher plano</button>`;
-    }
-    box.classList.add('show');
-  }
-
-  let wheelCoupon = null;
-  function applyWheelCoupon(pct){
-    wheelCoupon = pct;
-    showToast(pct+'% OFF ativado! Escolha um plano.');
-    closeLucky();
-  }
-
-  function selectPlan(name,value){
-    let v = value;
-    let label = name;
-    if(wheelCoupon){
-      v = +(value*(1 - wheelCoupon/100)).toFixed(2);
-      label = name+' • '+wheelCoupon+'% OFF';
-    }
-    currentValue=v;
-    generatePix(PLAN_DATA[name].payload, v, label);
-    selectedPlan=name;
-  }
-
-  function claimPrize(planKey,label,value){
-    closeLucky();
-    generatePix(PLAN_DATA[planKey].payload, value, label);
-  }
-
-  updateLuckyStatus();
-</script>
 </body>
 </html>
